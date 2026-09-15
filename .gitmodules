@@ -1,0 +1,6 @@
+[submodule "source-snapshots/fft-hrm-simulator-microbit-v2"]
+	path = source-snapshots/fft-hrm-simulator-microbit-v2
+	url = https://github.com/RandoSY/FFT-HRM-Simulator-Microbit-V2.git
+[submodule "source-snapshots/movement-data-logger"]
+	path = source-snapshots/movement-data-logger
+	url = https://github.com/RandoSY/movement-data-logger.git
