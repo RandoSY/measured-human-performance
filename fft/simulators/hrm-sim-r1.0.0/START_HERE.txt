@@ -1,0 +1,23 @@
+FFT+ HRM SIMULATOR — START HERE
+================================
+
+1. Open PowerShell in this folder.
+2. Build:
+     py -3.13 -m platformio run
+3. Program:
+     py -3.13 -m platformio run -t upload
+   Or copy .pio\build\fft_hrm_sim_microbit_v2\firmware.hex to MICROBIT.
+4. The simulator advertises as FFT-HRM-SIM.
+5. On the separate FFT+ tester micro:bit, send:
+     HRM_SCAN
+6. Use simulator buttons:
+     A       lower BPM
+     B       raise BPM
+     Hold    repeat
+     A+B     reset to 90
+7. Optional simulator serial terminal at 115200 baud:
+     STATUS
+     BPM 120
+     CONTACT OFF
+
+This is generated laboratory data, not a physiological measurement.
