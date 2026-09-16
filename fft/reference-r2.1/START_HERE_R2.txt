@@ -1,0 +1,39 @@
+FAIR FITNESS TESTER FFT+ R2 — START HERE
+
+FFT+ TOPOLOGY
+  Standard BLE HRM -- Heart Rate Service --> micro:bit V2.21
+  Browser console  <-- Nordic UART Service -- micro:bit V2.21
+
+The micro:bit is simultaneously:
+  1. BLE CENTRAL / HRS collector toward the heart-rate monitor.
+  2. BLE PERIPHERAL / NUS server toward the browser.
+
+FIRST SESSION — NO PERSON STEPPING
+  1. Read docs\SAFETY_AND_SCOPE.md
+  2. Run scripts\validate_package.bat
+  3. Build: scripts\build_firmware.ps1
+  4. Flash: scripts\upload_firmware.ps1
+  5. Serve console: scripts\serve_console.bat
+  6. Connect the browser to FairFitFFTPlus
+  7. Send configuration with HR_LIMIT_SOURCE set to an approved source
+  8. Use HRM SIMULATE_ON and SIMULATE_ON to test the complete FFT+ path
+  9. Raise HRM_SIMULATE_BPM above HR_STOP_BPM and prove local DONE reason=HR_UPPER_BOUND
+ 10. Turn simulators off; connect a real standard BLE HRM; verify fresh BPM
+ 11. Perform bench and ground-truth tests before any supervised participant session
+
+REAL-DEVICE SMOKE TEST EXAMPLES
+  Developer-safe simulated motion and HR stop:
+    scripts\run_ble_smoke_test.ps1 --run-trial --simulate-motion --test-hr-stop
+
+  Real HRM connection, no forced HR stop:
+    scripts\run_ble_smoke_test.ps1 --real-hrm
+
+  Real HRM plus short protected motion trial:
+    scripts\run_ble_smoke_test.ps1 --real-hrm --run-trial
+
+DO NOT
+  - Invent a participant's HR ceiling.
+  - Treat HR alone as medical clearance.
+  - Disable supervision, symptom observation, or the participant's right to stop.
+  - Use the HR simulator with a participant.
+  - Call the system physically or scientifically validated until the validation plan passes.
