@@ -27,8 +27,13 @@ def parse_accel(line):
 
 async def find_device(name, timeout=8.0):
     print(f"Scanning for {name!r}...")
-    for d in await BleakScanner.discover(timeout=timeout):
-        if (d.name or "")==name: return d
+    devices = await BleakScanner.discover(timeout=timeout)
+    for d in devices:
+        if (d.name or "") == name:
+            return d
+    for d in devices:
+        if (d.name or "").startswith(name):
+            return d
     return None
 
 def existing_counts(path):
