@@ -18,6 +18,14 @@ SQM+ explores movement quality from inexpensive inertial sensing. Representative
 
 Tone Trainer uses inexpensive motion sensing with pacing feedback for repeatable machine-based exercise. The goal is to make rep timing and consistency visible without requiring specialized gym equipment.
 
+### AI Exercise Timer — Arduino/NimBLE + transparent ML
+
+**[Open the complete AI Exercise Timer project](ai-exercise-timer/)**
+
+This is a complete BBC micro:bit V2 physical-AI example inspired by the micro:bit Foundation CreateAI exercise-timer workflow, rebuilt with **Arduino IDE + NimBLE-Arduino**. The micro:bit streams raw x/y/z acceleration over BLE; a Python host collects labeled one-second examples, trains an inspectable classifier, applies a confidence threshold, and reports a known action or `unknown`.
+
+The directory includes firmware, protocol documentation, sample collection, model training, live recognition, an exercise/rest timer, teaching notes, licensing, third-party references, and a hardware-validation checklist.
+
 ### PlateLab
 
 PlateLab is related work in low-cost measurement and behavior feedback around food mass and daily budgets. It remains part of the broader APPS lineage even where its technical components overlap Measured World Lab.
