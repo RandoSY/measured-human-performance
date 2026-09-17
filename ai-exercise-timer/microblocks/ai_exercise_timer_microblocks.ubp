@@ -1,0 +1,155 @@
+module main
+author RandoSY
+version 1 0
+description 'BBC micro:bit V2 AI Exercise Timer companion. Streams x/y/z acceleration over BLE Nordic UART in YMP ASCII form and uses the 5x5 display as a participant-facing state channel.'
+variables streaming rate periodMs displayMode displayChar wasConnected newline
+
+script 50 50 {
+whenStarted
+'[sensors:setAccelerometerRange]' 2
+streaming = (booleanConstant false)
+rate = 25
+periodMs = 40
+displayMode = 'ADVERTISING'
+displayChar = 'E'
+wasConnected = (booleanConstant false)
+newline = ('[data:unicodeString]' 10)
+forever {
+  if ('[ble:uartConnected]') {
+    if (not wasConnected) {
+      wasConnected = (booleanConstant true)
+      displayMode = 'READY'
+    }
+    local 'msg' ('[ble:uartRead]' false)
+    if (msg != (booleanConstant false)) {
+      local 'command' msg
+      if ((size command) > 0) {
+        if (('[data:unicodeAt]' (size command) command) <= 32) {
+          command = ('[data:copyFromTo]' command 1 ((size command) - 1))
+        }
+      }
+      if (command == 'I') {
+        bleWrite ('[data:join]' 'I,MICROBLOCKS,' rate newline)
+      }
+      if (command == 'P') {
+        bleWrite ('[data:join]' 'P,OK' newline)
+      }
+      if (command == 'S,1') {
+        streaming = (booleanConstant true)
+        displayMode = 'STREAM'
+        bleWrite ('[data:join]' 'S,1,OK' newline)
+      }
+      if (command == 'S,0') {
+        streaming = (booleanConstant false)
+        displayMode = 'STOP'
+        bleWrite ('[data:join]' 'S,0,OK' newline)
+      }
+      if (('[data:find]' 'R,' command) == 1) {
+        local 'requestedRate' (0 + ('[data:copyFromTo]' command 3 (size command)))
+        if (and (requestedRate >= 10) (requestedRate <= 100)) {
+          rate = requestedRate
+          periodMs = (1000 / rate)
+          bleWrite ('[data:join]' 'R,' rate ',OK' newline)
+        }
+      }
+      if (command == 'D,ADVERTISING') {displayMode = 'ADVERTISING'}
+      if (command == 'D,READY') {displayMode = 'READY'}
+      if (command == 'D,STREAM') {displayMode = 'STREAM'}
+      if (command == 'D,STOP') {displayMode = 'STOP'}
+      if (command == 'D,UNKNOWN') {displayMode = 'UNKNOWN'}
+      if (command == 'D,OK') {displayMode = 'OK'}
+      if (command == 'D,ERROR') {displayMode = 'ERROR'}
+      if (('[data:find]' 'D,RECORD,' command) == 1) {
+        if ((size command) >= 10) {displayChar = (at 10 command)}
+        displayMode = 'RECORD'
+      }
+      if (('[data:find]' 'D,CLASS,' command) == 1) {
+        if ((size command) >= 9) {displayChar = (at 9 command)}
+        displayMode = 'CLASS'
+      }
+      if (('[data:find]' 'D,CHAR,' command) == 1) {
+        if ((size command) >= 8) {displayChar = (at 8 command)}
+        displayMode = 'CHAR'
+      }
+    }
+    if streaming {
+      local 'xmg' (10 * ('[sensors:tiltX]'))
+      local 'ymg' (10 * ('[sensors:tiltY]'))
+      local 'zmg' (10 * ('[sensors:tiltZ]'))
+      bleWrite ('[data:join]' 'A,' xmg ',' ymg ',' zmg newline)
+      waitMillis periodMs
+    } else {
+      waitMillis 20
+    }
+  } else {
+    streaming = (booleanConstant false)
+    wasConnected = (booleanConstant false)
+    displayMode = 'ADVERTISING'
+    waitMillis 100
+  }
+}
+}
+
+script 430 50 {
+whenStarted
+forever {
+  if (displayMode == 'ADVERTISING') {
+    '[display:mbDrawShape]' 4347204 1 1
+    waitMillis 450
+    if (displayMode == 'ADVERTISING') {
+      '[display:mbDrawShape]' 4096 1 1
+      waitMillis 450
+    }
+  }
+  if (or (displayMode == 'READY') (displayMode == 'OK')) {
+    '[display:mbDrawShape]' 2269696 1 1
+    waitMillis 100
+  }
+  if (displayMode == 'STREAM') {
+    '[display:mbDrawShape]' 4291652 1 1
+    waitMillis 100
+  }
+  if (displayMode == 'STOP') {
+    '[display:mbDrawShape]' 18157905 1 1
+    waitMillis 100
+  }
+  if (displayMode == 'RECORD') {
+    '[display:mbDrawShape]' 15255086 1 1
+    waitMillis 300
+    if (displayMode == 'RECORD') {
+      '[display:mbDrawShape]' ('[display:mbShapeForLetter]' displayChar) 1 1
+      waitMillis 300
+    }
+  }
+  if (or (displayMode == 'CLASS') (displayMode == 'CHAR')) {
+    '[display:mbDrawShape]' ('[display:mbShapeForLetter]' displayChar) 1 1
+    waitMillis 100
+  }
+  if (displayMode == 'UNKNOWN') {
+    '[display:mbDrawShape]' 4196910 1 1
+    waitMillis 100
+  }
+  if (displayMode == 'ERROR') {
+    '[display:mbDrawShape]' 4198532 1 1
+    waitMillis 100
+  }
+  waitMillis 10
+}
+}
+
+module 'YMP BLE Helper' Comm
+author RandoSY
+version 1 0
+description 'Minimal BLE UART string writer used by the AI Exercise Timer companion.'
+
+  spec ' ' 'bleWrite' 'YMP BLE write _' 'str' 'A,0,0,1000'
+
+to bleWrite aString {
+  local 'bytes' ('[data:convertType]' aString 'byte array')
+  local 'i' 1
+  local 'end' (size bytes)
+  repeatUntil (i > end) {
+    '[ble:uartWrite]' bytes i
+    i += 240
+  }
+}

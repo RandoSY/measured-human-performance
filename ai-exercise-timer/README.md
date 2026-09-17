@@ -1,14 +1,18 @@
 # micro:bit V2 Arduino/NimBLE AI Exercise Timer
 
+<p align="center">
+  <img src="assets/ai-exercise-timer-logo.jpg" alt="AI Exercise Timer logo" width="320">
+</p>
+
 A small, inspectable physical-AI project for the **BBC micro:bit V2**.
 
-This project takes the educational idea behind the micro:bit Foundation's **Simple AI exercise timer / CreateAI** workflow and rebuilds the instrument around **Arduino IDE + NimBLE-Arduino**:
+This project takes the educational idea behind the micro:bit Foundation's **Simple AI exercise timer / CreateAI** workflow and rebuilds the instrument around an open measurement path:
 
 ```text
 micro:bit V2 accelerometer
         |
         v
-Arduino firmware + NimBLE
+Arduino/NimBLE or MicroBlocks
         |
         v
 Nordic UART Service BLE
@@ -20,22 +24,23 @@ Python host
 collect   train ML     recognize/timer
 ```
 
-The central design decision is simple: the micro:bit is a **general wireless motion instrument**, not a one-purpose AI appliance. Raw x/y/z motion remains available while training and classification can be inspected, replaced, compared, or improved without reflashing the sensor node.
+The central design decision is simple: the micro:bit is a **general wireless motion instrument**, not a one-purpose AI appliance. Raw x/y/z motion remains available while training and classification can be inspected, replaced, compared, or improved without changing the measurement idea.
 
 ## Included
 
 - Arduino IDE firmware for BBC micro:bit V2 / nRF52833
-- NimBLE-Arduino peripheral using Nordic UART Service (NUS)
-- automatic detection of either micro:bit V2 motion sensor: ST LSM303AGR or NXP FXOS8700CQ
+- h2zero n-able + NimBLE-Arduino Nordic UART Service (NUS) transport
+- automatic Arduino-side detection of ST LSM303AGR or NXP FXOS8700CQ
 - human-readable ASCII acceleration packets
-- adjustable 10–100 Hz BLE sampling; 50 Hz default
+- live **5x5 LED status language** for waiting, ready, streaming, recording, recognized class, unknown, stop, and error
 - CreateAI-style labeled **1-second samples**
 - 10-second continuous capture split into ten 1-second samples
 - transparent statistical features
 - Random Forest classification with per-class probabilities
 - recognition threshold with explicit `unknown`
 - alternate exercise/rest timer workflow
-- protocol, teaching notes, third-party attribution, and validation checklist
+- a separate **MicroBlocks companion implementation** using the same NUS/YMP measurement idea
+- protocol, teaching notes, attribution, and validation checklist
 
 ## Why this exists
 
@@ -55,7 +60,7 @@ It also encourages a crucial engineering question:
 
 **Reference/experimental release.**
 
-The Python scripts have passed syntax checks, and the feature-extraction/training path has passed a synthetic-data smoke test. The firmware and end-to-end BLE path still require real micro:bit V2 hardware qualification before this release should be described as hardware-validated. See `VALIDATION.md`.
+The Python scripts have passed syntax checks, and the feature-extraction/training path has passed a synthetic-data smoke test. The Arduino firmware, MicroBlocks project, and end-to-end BLE paths still require real micro:bit V2 hardware qualification before this release should be described as hardware-validated. See [`VALIDATION.md`](VALIDATION.md).
 
 This is an educational/research movement-classification project. It is **not a medical device**, diagnostic system, or exercise-prescription system.
 
@@ -71,6 +76,7 @@ Install:
 
 1. **Arm BLE Boards** / h2zero n-able Arduino core
 2. **NimBLE-Arduino** 2.x
+3. **Adafruit micro:bit library** for the 5x5 matrix interface
 
 Select:
 
@@ -84,7 +90,26 @@ Open and upload:
 firmware/microbit_v2_nimble_streamer/microbit_v2_nimble_streamer.ino
 ```
 
-The device advertises as `MB2-AI-TIMER`.
+The Arduino/NimBLE device advertises as `MB2-AI-TIMER`.
+
+## 5x5 display: the participant can see the state
+
+The matrix is part of the measurement interface, not decoration. The person supplying the motion should know what the instrument is doing without watching the Python console.
+
+| State | Display meaning |
+|---|---|
+| Advertising | animated radio/beacon |
+| Ready | check mark |
+| Streaming | right arrow |
+| Recording | circle alternating with label initial |
+| Recognized | class initial, A-Z or 0-9 |
+| Unknown | question mark |
+| Stopped | X |
+| Error | exclamation mark |
+
+During data collection, `exercise` therefore flashes a record circle and `E`; `rest` flashes a record circle and `R`. During recognition, the class initial remains visible, or `?` appears if the certainty threshold is not met.
+
+See [`DISPLAY.md`](DISPLAY.md) for the actual bitmaps and command vocabulary.
 
 ## BLE measurement format
 
@@ -94,11 +119,15 @@ The micro:bit sends newline-terminated ASCII:
 A,x_mg,y_mg,z_mg
 ```
 
-Example: `A,-32,101,987`
+Example:
 
-Units are **mg**. The packet is intentionally compact enough to fit the normal 20-byte ATT notification payload at the configured ±2 g range.
+```text
+A,-32,101,987
+```
 
-Commands:
+Units are **mg**.
+
+Core commands:
 
 ```text
 I       information
@@ -108,7 +137,17 @@ S,0     stop streaming
 R,50    set 50 Hz
 ```
 
-See `PROTOCOL.md` for UUIDs and details.
+Display commands share the same BLE serial channel, for example:
+
+```text
+D,READY
+D,RECORD,E
+D,CLASS,E
+D,UNKNOWN
+D,STOP
+```
+
+See [`PROTOCOL.md`](PROTOCOL.md) for UUIDs and details.
 
 ## Python setup
 
@@ -169,7 +208,21 @@ Recognize:
 python recognize_samples.py --model movement_model.joblib --threshold 0.70
 ```
 
-If no class exceeds the recognition threshold the result is `unknown`. A classifier should be allowed to say “I do not know.”
+If no class exceeds the recognition threshold, the result is `unknown`. A classifier should be allowed to say **I do not know**.
+
+## MicroBlocks companion
+
+A second implementation lives in [`microblocks/`](microblocks/). It uses MicroBlocks' BLE serial/Nordic UART capability and the micro:bit V2 accelerometer while preserving the same human-readable `A,x,y,z` stream and participant-facing 5x5 state vocabulary.
+
+The MicroBlocks edition is intentionally a **low-floor educational companion**, not a replacement for the Arduino/NimBLE reference implementation.
+
+Recommended starting command after loading the MicroBlocks project:
+
+```bash
+python collect_samples.py --name MicroBlocks --rate 25 --out createai_samples.csv
+```
+
+See [`microblocks/README.md`](microblocks/README.md) for the important IDE/BLE connection caveat and current validation status.
 
 ## Alternate exercise/rest timer
 
@@ -184,21 +237,28 @@ python live_timer.py --model exercise_model.joblib
 ```text
 ai-exercise-timer/
 ├── README.md
+├── DISPLAY.md
 ├── LICENSE
 ├── PROTOCOL.md
 ├── TEACHING.md
 ├── THIRD_PARTY.md
 ├── VALIDATION.md
-├── .gitignore
-├── firmware/microbit_v2_nimble_streamer/microbit_v2_nimble_streamer.ino
-└── host/
-    ├── collect_samples.py
-    ├── train_samples.py
-    ├── recognize_samples.py
-    ├── collect.py
-    ├── train.py
-    ├── live_timer.py
-    └── requirements.txt
+├── assets/
+│   └── ai-exercise-timer-logo.jpg
+├── firmware/
+│   └── microbit_v2_nimble_streamer/
+│       └── microbit_v2_nimble_streamer.ino
+├── host/
+│   ├── collect_samples.py
+│   ├── train_samples.py
+│   ├── recognize_samples.py
+│   ├── collect.py
+│   ├── train.py
+│   ├── live_timer.py
+│   └── requirements.txt
+└── microblocks/
+    ├── README.md
+    └── ai_exercise_timer_microblocks.ubp
 ```
 
 ## Relationship to CreateAI
@@ -213,11 +273,12 @@ References:
 
 The preprocessing and classifier here are intentionally explicit so learners can see and modify what happens between measurement and decision.
 
-## Upstream BLE references
+## Upstream references
 
-- https://github.com/h2zero/n-able-Arduino
-- https://github.com/h2zero/NimBLE-Arduino
+- n-able Arduino: https://github.com/h2zero/n-able-Arduino
+- NimBLE-Arduino: https://github.com/h2zero/NimBLE-Arduino
+- MicroBlocks: https://microblocks.fun/
 
 ## License
 
-Original code and documentation in this project are released under the **MIT License**. Third-party projects and referenced educational material remain under their own licenses. See `THIRD_PARTY.md`.
+Original code and documentation in this project are released under the **MIT License**. Third-party projects and referenced educational material remain under their own licenses. See [`THIRD_PARTY.md`](THIRD_PARTY.md).

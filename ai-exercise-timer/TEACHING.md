@@ -34,3 +34,23 @@ A useful baseline is vector magnitude:
 Then compare the standard deviation or RMS of changes in `m` over one second with the ML result.
 
 Preserve raw data. A classification is an interpretation; the accelerometer measurements are the observations that produced it.
+
+## The display is part of the experiment
+
+The 5x5 matrix closes a human-factors loop: the person moving can see **when a sample is actually being recorded and which label is active**. That reduces a common source of bad training data—performing the right motion at the wrong time or under the wrong label.
+
+The display therefore belongs in the measurement protocol:
+
+`instruction -> visible state -> movement -> measurement -> label`
+
+It is not merely cosmetic feedback.
+
+## Three useful levels of abstraction
+
+This project can now be approached at three levels:
+
+1. **CreateAI** — experience the training/classification idea quickly.
+2. **MicroBlocks** — expose measurement, BLE messages, states, and 5x5 feedback in a highly inspectable visual environment.
+3. **Arduino/NimBLE** — expose the embedded implementation, sensor variants, timing, BLE service, and explicit state machine.
+
+The scientific question should survive all three implementations: **what was measured, how much, and is this method enough for the purpose?**
