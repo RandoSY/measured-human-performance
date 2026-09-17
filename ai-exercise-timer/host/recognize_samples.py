@@ -20,8 +20,13 @@ def parse(line):
     except ValueError: return None
 
 async def find(name):
-    for d in await BleakScanner.discover(timeout=8):
-        if (d.name or "")==name: return d
+    devices = await BleakScanner.discover(timeout=8)
+    for d in devices:
+        if (d.name or "") == name:
+            return d
+    for d in devices:
+        if (d.name or "").startswith(name):
+            return d
     return None
 
 async def main():
